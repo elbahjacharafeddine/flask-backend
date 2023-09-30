@@ -137,6 +137,10 @@ def authenticate(username, password):
     return None
 
 
+@app.route('/elbahja')
+def elbahja():
+    return "Hello elbahja how are you ?"
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.get_user_by_id(user_id)
