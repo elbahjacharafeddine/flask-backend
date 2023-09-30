@@ -63,7 +63,7 @@ tensorboard
 tensorflow-estimator
 tensorflow-intel
 tensorflow-io-gcs-filesystem
-tensorflow==2.14.0
+tensorflow==2.4.0
 termcolor
 tifffile
 typing-extensions
