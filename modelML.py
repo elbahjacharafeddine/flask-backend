@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from tensorflow.keras.applications.densenet import preprocess_input
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from PIL import Image
 import tensorflow as tf
 import efficientnet.keras as efn
