@@ -1,8 +1,8 @@
 # import cv2
 from matplotlib import pyplot as plt
 import numpy as np
-from keras.preprocessing.image import load_img, img_to_array
-from keras.applications.densenet import preprocess_input
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
+from tensorflow.keras.applications.densenet import preprocess_input
 from keras.models import load_model
 from PIL import Image
 import tensorflow as tf
