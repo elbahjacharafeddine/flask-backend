@@ -43,7 +43,7 @@ opt-einsum
 packaging
 Pillow
 pip
-protobuf
+protobuf==4.24.3
 pyasn1-modules
 pyasn1
 PyJWT
@@ -63,7 +63,7 @@ tensorboard
 tensorflow-estimator
 tensorflow-intel
 tensorflow-io-gcs-filesystem
-tensorflow
+tensorflow==2.14.0
 termcolor
 tifffile
 typing-extensions
