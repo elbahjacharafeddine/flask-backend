@@ -1,9 +1,8 @@
 from datetime import datetime
-from flask import Flask, request, jsonify
+
 from bson import ObjectId
 from mongoengine import (
     DateField,
-    ImageField,
     ReferenceField,
     ListField,
     BooleanField,
@@ -11,18 +10,19 @@ from mongoengine import (
     DateTimeField,
     FloatField
 )
-from mongoengine import Document, StringField, IntField
-from flask_login import UserMixin
+from mongoengine import Document, StringField
 from werkzeug.security import check_password_hash
 
+
 ##############################################les classes ################################################################
-class User(Document, UserMixin):
+class User(Document):
     _id = ObjectIdField(primary_key=True, default=lambda: ObjectId())
     username = StringField(required=True)
     password = StringField(required=True)
     confirmPassword = StringField(required=True)
     nom = StringField(required=True)
     prenom = StringField(required=True)
+    email = StringField(required=True)
     photoName = StringField(required=False, max_length=100)
     photo = StringField(required=False)
     role = ListField(StringField(required=True))
@@ -41,6 +41,7 @@ class User(Document, UserMixin):
     @staticmethod
     def get_user_by_id(user_id):
         return User.objects(pk=user_id).first()
+
 
 class Patient(User):
     birthdate = DateField()
@@ -69,13 +70,14 @@ class Rendez_vous(Document):
 
 class Consultation(Document):
     _id = ObjectIdField(primary_key=True, default=lambda: ObjectId())
-    dateConsult = DateTimeField(default=lambda:datetime.now())
+    dateConsult = DateTimeField(default=lambda: datetime.now())
     diagnostics = ListField(ReferenceField("Diagnostic"))
     rdv = ReferenceField("Rendez_vous")
 
+
 class Diagnostic(Document):
     _id = ObjectIdField(primary_key=True, default=lambda: ObjectId())
-    dateDiagnostic = DateTimeField(default=lambda:datetime.now())
+    dateDiagnostic = DateTimeField(default=lambda: datetime.now())
     descripSymptome = ListField(StringField(required=False))
     imageName = StringField(required=False)
     imagePath = StringField(required=False)
@@ -85,7 +87,8 @@ class Diagnostic(Document):
     maladie = ReferenceField("Maladie")
     probability = FloatField(required=False)
     maladies = ListField(ReferenceField("Maladie"))
-    probabilities= ListField(FloatField())
+    probabilities = ListField(FloatField())
+
 
 class Maladie(Document):
     _id = ObjectIdField(primary_key=True, default=lambda: ObjectId())
@@ -107,6 +110,7 @@ class ImageStade(Document):
     imagePath = StringField(required=True)
     title = StringField(required=True)
     stade = ReferenceField("Stade")
+
 
 class Symptoms(Document):
     _id = ObjectIdField(primary_key=True, default=lambda: ObjectId())

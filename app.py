@@ -1,35 +1,39 @@
-from flask import Flask
+from urllib import request
+
+from flask import render_template, jsonify, Flask, request
 # from pymongo import MongoClient
-from mongoengine import Document, StringField, IntField
-from mongoengine import connect, Q
-from datetime import datetime, date
-from flask import Flask, request, jsonify, send_file
+import datetime
 import json
-from bson import ObjectId
-from mongoengine.queryset import QuerySet
+import os
+import shutil
+import time
+from datetime import date
+from functools import wraps
+from threading import Thread
+from urllib.parse import quote_plus
+
+import jwt
+# import cv2
+import numpy as np
+from PIL import Image
+from flask import render_template
+from flask import send_from_directory
+from flask_cors import CORS
+from flask_login import LoginManager
+from flask_login import login_user, logout_user, login_required, current_user
+# import tensorflow as tf
+from flask_mail import Mail, Message
+from keras.applications.densenet import preprocess_input
+from keras.preprocessing.image import load_img, img_to_array
 from mongoengine import DoesNotExist
-from models import *
+# from pymongo import MongoClient
+from mongoengine import connect, Q
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from flask_login import login_user, logout_user, login_required, current_user
-from functools import wraps
-from flask_login import LoginManager
+
 import secrets
-import os
-import datetime
-from flask_cors import CORS
 from modelML import get_model
-import jwt
-import shutil
-# import cv2
-from matplotlib import pyplot as plt
-import numpy as np
-from tensorflow.keras.preprocessing.image import load_img, img_to_array
-from tensorflow.keras.applications.densenet import preprocess_input
-from PIL import Image
-# import tensorflow as tf
-import efficientnet.keras as efn
-from flask import send_from_directory
+from models import *
 
 
 def convert_objet_to_dict(objet, depth=1, max_depth=3):
@@ -110,14 +114,73 @@ app = Flask(__name__)
 CORS(app)  # Active les en-têtes CORS pour toutes les routes
 app.config["SECRET_KEY"] = secrets.token_hex(16)
 app.config["UPLOAD_FOLDER"] = os.path.dirname(__file__)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USERNAME'] = "amineensa2019@gmail.com"
+app.config['MAIL_PASSWORD'] = "htme zsbd gvxm lvot"
+mail = Mail(app)
+
+
+def send_email(app, msg):
+    with app.app_context():
+        mail.send(msg)
+
+
+# app.config["MONGODB_SETTINGS"] = {
+#     "db": "Medical",
+#     "host": "mongodb+srv://amineelmansouri:Amine@12345678@cluster0.l1sdqyd.mongodb.net/",
+#     "retryWrites": True,
+# }
+# username = "amineelmansouri"
+# password = "Amine@12345678"
+# encoded_username = quote_plus(username)
+# encoded_password = quote_plus(password)
+
+# Update the MongoDB URI with the encoded username and password
+# app.config["MONGODB_SETTINGS"] = {
+#     "db": "Medical",
+#     "host": f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.l1sdqyd.mongodb.net/",
+#     "retryWrites": False,
+# }
 app.config["MONGODB_SETTINGS"] = {
-    "db": "Medical",
-    "host": " mongodb+srv://aboudramanecamara9:tt4rjV3SnGu5vEVi@cluster0.7xbx9c8.mongodb.net/",
+    "db": "donnees",  # Your database name
+    "host": "mongodb://localhost:27017",  # MongoDB URI for your local server
     "retryWrites": False,
 }
+
+# app.config['MONGO_URI'] = 'mongodb+srv://amineelmansouri:Amine@12345678@cluster0.7xbx9c8.mongodb.net/Medical?retryWrites=true&w=majority'
 connect(host="mongodb://localhost:27017/donnees")
+# connect(host=app.config['MONGODB_SETTINGS']['host'])
+# connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTINGS']['host'])
 # connect(host="mongodb+srv://aboudramanecamara9:tt4rjV3SnGu5vEVi@cluster0.7xbx9c8.mongodb.net/Medical")
 
+if connect:
+    print("connection with success")
+    try:
+        User.objects().delete()
+        new_user = User(
+            username="elbahjacharafeddine",
+            password=generate_password_hash("password"),
+            confirmPassword=generate_password_hash("password"),
+            nom="VotreNom",
+            prenom="VotrePrenom",
+            email="charafensaj@gmail.com",
+            photoName="nom_de_la_photo.jpg",
+            photo="chemin_vers_la_photo",
+            role=["patient"],
+            tel="12222222222222",
+            genre="votre_genre"
+        )
+
+        new_user.save()
+
+        print("Database cleared and user inserted successfully.")
+    except :
+        print("error")
+
+else:
+    print("Not yet try again ....")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -136,13 +199,40 @@ def authenticate(username, password):
     return None
 
 
-@app.route('/elbahja')
-def elbahja():
-    return "Hello elbahja how are you ?"
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.get_user_by_id(user_id)
+
+
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
+
+from models import User  # Replace 'your_app' with the actual name of your app module
+
+
+# Create a test user
+# test_user = User(username="testuser", password="testpassword", nom="Test", prenom="User", role=["patient"], tel="1234567890", genre="male")
+# test_user = User(
+#     username="testuser",
+#     password="testpassword",
+#     confirmPassword="testpassword",  # Provide a value for confirmPassword
+#     nom="Test",
+#     prenom="User",
+#     role=["patient"],
+#     tel="1234567890",
+#     genre="male"
+# )
+
+# test_user.save()
+
+# # Check if the user was created
+# retrieved_user = User.objects(username="testuser").first()
+# if retrieved_user:
+#     print("User created successfully.")
+# else:
+#     print("User creation failed.")
 
 
 @app.route("/uploads/<path:filename>")
@@ -151,13 +241,59 @@ def uploaded_file(filename):
 
 
 ############################################# Admin ###############################################################
+# @app.route("/api/user/admin/create", methods=["POST"])
+# @token_required
+# # @login_required
+# # @admin_required
+# def create_admin(current_user):
+#     data = request.get_json()
+#     username = data.get("username")
+#     existing_user = User.objects(username=username).first()
+#     if existing_user:
+#         return jsonify({"message": "A user with this username already exists"}), 409
+
+#     password = data.get("password")
+#     confirmPassword = data.get("confirmPassword")
+
+#     # Check if password and confirmPassword match
+#     if password != confirmPassword:
+#         return (
+#             jsonify(
+#                 {
+#                     "message": "Le mot de passe et la confirmation du mot de passe ne correspondent pas"
+#                 }
+#             ),
+#             400,
+#         )
+
+#     hashed_password = generate_password_hash(password)
+
+#     nom = data.get("nom")
+#     prenom = data.get("prenom")
+#     tel = data.get('tel')
+#     genre = data.get('genre')
+
+#     admin = User(
+#         username=username,
+#         password=hashed_password,
+#         confirmPassword=hashed_password,
+#         nom=nom,
+#         prenom=prenom,
+#         tel=tel,
+#         genre = genre,
+#         role=["admin", "medecin", "patient"],
+#     )
+
+#     admin.save()
+#     admin_data = convert_objet_to_dict(admin)
+#     return jsonify(admin_data), 201
+
 @app.route("/api/user/admin/create", methods=["POST"])
-@token_required
-# @login_required
-# @admin_required
-def create_admin(current_user):
+def create_admin():
     data = request.get_json()
     username = data.get("username")
+
+    # Check if a user with the same username already exists
     existing_user = User.objects(username=username).first()
     if existing_user:
         return jsonify({"message": "A user with this username already exists"}), 409
@@ -167,21 +303,15 @@ def create_admin(current_user):
 
     # Check if password and confirmPassword match
     if password != confirmPassword:
-        return (
-            jsonify(
-                {
-                    "message": "Le mot de passe et la confirmation du mot de passe ne correspondent pas"
-                }
-            ),
-            400,
-        )
+        return jsonify({"message": "Le mot de passe et la confirmation du mot de passe ne correspondent pas"}), 400
 
     hashed_password = generate_password_hash(password)
 
     nom = data.get("nom")
     prenom = data.get("prenom")
-    tel = data.get('tel')
-    genre = data.get('genre')
+    tel = data.get("tel")
+    email = data.get("email")
+    genre = data.get("genre")
 
     admin = User(
         username=username,
@@ -189,8 +319,9 @@ def create_admin(current_user):
         confirmPassword=hashed_password,
         nom=nom,
         prenom=prenom,
+        email=email,
         tel=tel,
-        genre = genre,
+        genre=genre,
         role=["admin", "medecin", "patient"],
     )
 
@@ -258,27 +389,249 @@ def change_password():
 
 
 ##################################### mot de passe oublié ##########################################
-@app.route("/api/users/forgot_password", methods=["POST"])
-def forgot_password():
+# @app.route("/api/users/forgot_password", methods=["POST"])
+# def forgot_password():
+#     data = request.get_json()
+#     username = data.get("username")
+
+#     if not username:
+#         return jsonify({"message": "Veuillez fournir le nom d'utilisateur"}), 400
+
+#     user = User.get_user_by_username(username)
+#     if not user:
+#         return jsonify({"message": "Utilisateur non trouvé"}), 404
+
+#     # You can implement the logic for sending a password reset email here
+#     # This could include generating a reset token, sending an email with a reset link, etc.
+
+#     return (
+#         jsonify(
+#             {"message": "Instructions de réinitialisation du mot de passe envoyées"}
+#         ),
+#         200,
+#     )
+
+
+# Mot de passe oublié
+# @app.route("/forgot_password/", methods=['POST'])
+# def forgot_password():
+# 	# if request.method=='GET': #Send the forgot password form
+# 	# 	return render_template('forgot_password.html')
+
+# 	if request.method=='POST':
+# 		#Get the post data
+# 		username = request.form.get('username')
+
+# 		#Checks
+# 		errors = []
+# 		if username is None or username=='':
+# 			errors.append('Username is required')
+# 		user = User.query.filter_by(username=username).first()
+#         # user = User.query.filter_by(username=username).first()
+
+# 		#Generate Random Pass and Set it to User object
+# 		import random
+# 		s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+# 		passlen = 16
+# 		generated_password =  "".join(random.sample(s,passlen ))
+# 		print(generated_password)
+# 		pw_hash = bcrypt.generate_password_hash(generated_password).decode('utf-8')
+# 		user.password = pw_hash
+# 		user.save()
+
+# 		#Send Reset Mail
+# 		import sendmail
+# 		message = sendmail.SendPasswordResetMail(user, generated_password)
+# 		print(message)
+# 		if message is not None:
+# 			return "Password Reset Link has been sent to your Email. "
+# 		else:
+# 			errors.append("Could Not Send Mail. Try Again Later.")
+
+# 		if len(errors)>0:
+# 			return "error"
+# @app.route("/forgot_password/", methods=['POST'])
+# def forgot_password():
+#     data = request.get_json()
+
+#     # Check if the 'username' field is in the JSON data
+#     if 'username' not in data:
+#         return jsonify({"message": "Username is required"}), 400
+
+#     # Get the username from the JSON data
+#     username = data['username']
+
+#     # Query the user by username
+#     user = User.objects(username=username).first()
+
+#     if user is None:
+#         return jsonify({"message": "User not found"}), 404
+#     else:
+#         # Generate a random password
+#         import random
+#         s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+#         passlen = 16
+#         generated_password = "".join(random.sample(s, passlen))
+#         print(generated_password)
+
+#         # Hash the generated password
+#         pw_hash = bcrypt.hashpw(generated_password.encode('utf-8'), bcrypt.gensalt())
+
+#         # Update the user's password
+#         user.password = pw_hash.decode('utf-8')  # Ensure it's a string
+#         user.save()
+
+#         # Send Reset Mail (assuming your sendmail function works)
+#         import sendmail
+#         message = sendmail.SendPasswordResetMail(user, generated_password)
+#         print(message)
+
+#         if message is not None:
+#             return "Password Reset Link has been sent to your Email."
+#         else:
+#             return "Could Not Send Mail. Try Again Later."
+
+# Generate a JWT token for password reset
+def generate_reset_token(username, expires_in=500):
+    secret_key = app.config["SECRET_KEY"]
+    if secret_key is None:
+        raise ValueError("SECRET_KEY_FLASK is not set in your environment.")
+
+    return jwt.encode({'reset_password': username, 'exp': time.time() + expires_in}, key=secret_key, algorithm='HS256')
+
+
+# Send a password reset email
+def send_password_reset_email(user):
+    token = generate_reset_token(user.username)
+    msg = Message("Skin Disease Diagnostic System--Password Reset", sender=app.config["MAIL_USERNAME"],
+                  recipients=[user.email])
+    msg.html = render_template('reset_email.html', user=user, token=token)
+
+    # Send the email asynchronously
+    Thread(target=send_email, args=(app, msg)).start()
+
+
+# Verify the password reset token
+def verify_reset_token(token):
+    try:
+        secret_key = app.config["SECRET_KEY"]
+        decoded_token = jwt.decode(token, key=secret_key, algorithms=['HS256'])
+        username = decoded_token['reset_password']
+    except jwt.ExpiredSignatureError:
+        return None  # Token has expired
+    except jwt.DecodeError:
+        return None  # Invalid token
+    return User.objects(username=username).first()
+
+
+# Route to request a password reset
+@app.route("/request_password_reset", methods=["POST"])
+def request_password_reset():
     data = request.get_json()
-    username = data.get("username")
+    email = data.get("email")  # Utilisez data au lieu de request.get_json
 
-    if not username:
-        return jsonify({"message": "Veuillez fournir le nom d'utilisateur"}), 400
+    if not email:
+        return jsonify({"message": "Email is required"}), 400
 
-    user = User.get_user_by_username(username)
+    user = User.objects(email=email).first()
     if not user:
-        return jsonify({"message": "Utilisateur non trouvé"}), 404
+        return jsonify({"message": "User with that email not found"}), 404
 
-    # You can implement the logic for sending a password reset email here
-    # This could include generating a reset token, sending an email with a reset link, etc.
+    # Ici, vous enverrez l'e-mail de réinitialisation du mot de passe
+    # Remplacez cette ligne par votre logique d'envoi de courriel
 
-    return (
-        jsonify(
-            {"message": "Instructions de réinitialisation du mot de passe envoyées"}
-        ),
-        200,
-    )
+    return jsonify({"message": "An email has been sent with instructions to reset your password"}), 200
+
+
+# Route to reset the password with a valid token
+# @app.route("/reset_password/<token>", methods=["POST"])
+# def reset_password(token):
+#     user = verify_reset_token(token)
+#     if not user:
+#         return jsonify({"message": "Invalid or expired token"}), 400
+
+#     new_password = request.json.get("new_password")
+#     if not new_password:
+#         return jsonify({"message": "New password is required"}), 400
+
+#     # Update the user's password with the new one and save to the database
+#     user.password = generate_password_hash(new_password)
+#     user.save()
+
+#     return jsonify({"message": "Password has been reset successfully"}), 200
+
+# @app.route("/reset_password/<token>", methods=["GET", "POST"])
+# def reset_password(token):
+#     if request.method == "GET":
+#         # Handle the GET request to display a password reset form
+#         return render_template("reset_password_form.html")
+#     elif request.method == "POST":
+#         # Handle the POST request to reset the password
+#         user = verify_reset_token(token)
+#         if not user:
+#             return jsonify({"message": "Invalid or expired token"}), 400
+
+#         new_password = request.json.get("new_password")
+#         if not new_password:
+#             return jsonify({"message": "New password is required"}), 400
+
+#         # Update the user's password with the new one and save to the database
+#         user.password = generate_password_hash(new_password)
+#         user.save()
+
+#         return jsonify({"message": "Password has been reset successfully"}), 200
+#     else:
+#         # Handle other HTTP methods (if needed)
+#         return jsonify({"message": "Method Not Allowed"}), 405
+
+# @app.route("/reset_password/<token>", methods=["GET", "POST"])
+# def reset_password(token):
+#     if request.method == "GET":
+#         # Handle the GET request to display a password reset form
+#         return render_template("reset_password_form.html", token=token)
+#     elif request.method == "POST":
+#         # Handle the POST request to reset the password
+#         user = verify_reset_token(token)
+#         if not user:
+#             return jsonify({"message": "Invalid or expired token"}), 400
+
+#         new_password = request.form.get("new_password")  # Change to request.form
+#         if not new_password:
+#             return jsonify({"message": "New password is required"}), 400
+
+#         # Update the user's password with the new one and save to the database
+#         user.password = generate_password_hash(new_password)
+#         user.save()
+
+#         return jsonify({"message": "Password has been reset successfully"}), 200
+#     else:
+#         # Handle other HTTP methods (if needed)
+#         return jsonify({"message": "Method Not Allowed"}), 405
+
+@app.route("/reset_password/<token>", methods=["POST"])
+def reset_password(token):
+    if request.method == "POST":
+        # Handle the POST request to reset the password
+        user = verify_reset_token(token)
+        if not user:
+            return jsonify({"message": "Invalid or expired token"}), 400
+
+        data = request.get_json()
+        new_password = data.get("new_password")
+        if not new_password:
+            return jsonify({"message": "New password is required"}), 400
+
+        # Update the user's password with the new one and save it to the database
+        user.password = generate_password_hash(new_password)
+        user.save()
+
+        return jsonify({"message": "Password has been reset successfully"}), 200
+    else:
+        # Handle other HTTP methods (if needed)
+        return jsonify({"message": "Method Not Allowed"}), 405
+
+
+# fin de Mot de passe oublié method
 
 
 ########################## route pour récupérer les informations de l'utilisateur actuellement connecté#######
