@@ -12,10 +12,10 @@ from mongoengine import (
 )
 from mongoengine import Document, StringField
 from werkzeug.security import check_password_hash
-
+from flask_login import UserMixin
 
 ##############################################les classes ################################################################
-class User(Document):
+class User(Document, UserMixin):
     _id = ObjectIdField(primary_key=True, default=lambda: ObjectId())
     username = StringField(required=True)
     password = StringField(required=True)
@@ -31,8 +31,14 @@ class User(Document):
     meta = {"allow_inheritance": True}
     is_active = BooleanField(default=True)
 
-    def get_id(self):
-        return str(self.username)
+    # def get_id(self):
+    #     return str(self.username)
+    #
+    # def authenticate_user(self,username, password):
+    #     user = User.objects(username=self).first()
+    #     if user and user.password == password:
+    #         return user
+    #     return None
 
     @staticmethod
     def check_password(user, password):

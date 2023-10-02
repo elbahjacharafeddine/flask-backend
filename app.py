@@ -35,6 +35,25 @@ from werkzeug.utils import secure_filename
 import secrets
 from modelML import get_model
 from models import *
+from faker import Faker
+from random import choice, randint
+faker = Faker()
+
+nombre_de_documents = 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def convert_objet_to_dict(objet, depth=1, max_depth=3):
@@ -164,6 +183,24 @@ if connect:
         )
 
         new_user.save()
+
+        n_user = User(
+            username="elbahja",
+            password=generate_password_hash("password"),
+            confirmPassword=generate_password_hash("password"),
+            nom="VotreNom",
+            prenom="VotrePrenom",
+            email="charafensaj@gmail.com",
+            photoName="photo.jpg",
+            photo="photo",
+            role=["medecin"],
+            tel="12222222222222",
+            genre="votre_genre",
+            is_active=True
+        )
+
+        n_user.save()
+
 
         print("Database cleared and user inserted successfully.")
     except Exception as e:
