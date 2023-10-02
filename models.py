@@ -29,6 +29,10 @@ class User(Document):
     tel = StringField(required=True)
     genre = StringField(required=True)
     meta = {"allow_inheritance": True}
+    is_active = BooleanField(default=True)
+
+    def get_id(self):
+        return str(self.username)
 
     @staticmethod
     def check_password(user, password):

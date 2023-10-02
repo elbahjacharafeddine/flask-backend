@@ -7,7 +7,8 @@ import json
 import os
 import shutil
 import time
-from datetime import date
+from datetime import datetime, timedelta
+
 from functools import wraps
 from threading import Thread
 from urllib.parse import quote_plus
@@ -127,38 +128,26 @@ def send_email(app, msg):
         mail.send(msg)
 
 
-# app.config["MONGODB_SETTINGS"] = {
-#     "db": "Medical",
-#     "host": "mongodb+srv://amineelmansouri:Amine@12345678@cluster0.l1sdqyd.mongodb.net/",
-#     "retryWrites": True,
-# }
-# username = "amineelmansouri"
-# password = "Amine@12345678"
-# encoded_username = quote_plus(username)
-# encoded_password = quote_plus(password)
+username = "amineelmansouri"
+password = "Amine@12345678"
+encoded_username = quote_plus(username)
+encoded_password = quote_plus(password)
 
 # Update the MongoDB URI with the encoded username and password
-# app.config["MONGODB_SETTINGS"] = {
-#     "db": "Medical",
-#     "host": f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.l1sdqyd.mongodb.net/",
-#     "retryWrites": False,
-# }
 app.config["MONGODB_SETTINGS"] = {
-    "db": "donnees",  # Your database name
-    "host": "mongodb://localhost:27017",  # MongoDB URI for your local server
-    "retryWrites": False,
+    "db": "Medical",
+    "host": f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.l1sdqyd.mongodb.net/",
+    "retryWrites":False,
 }
+connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTINGS']['host'])
 
-# app.config['MONGO_URI'] = 'mongodb+srv://amineelmansouri:Amine@12345678@cluster0.7xbx9c8.mongodb.net/Medical?retryWrites=true&w=majority'
-connect(host="mongodb://localhost:27017/donnees")
-# connect(host=app.config['MONGODB_SETTINGS']['host'])
-# connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTINGS']['host'])
-# connect(host="mongodb+srv://aboudramanecamara9:tt4rjV3SnGu5vEVi@cluster0.7xbx9c8.mongodb.net/Medical")
 
 if connect:
-    print("connection with success")
+    print("Connection with success")
     try:
+        # Clear existing users
         User.objects().delete()
+
         new_user = User(
             username="elbahjacharafeddine",
             password=generate_password_hash("password"),
@@ -166,21 +155,21 @@ if connect:
             nom="VotreNom",
             prenom="VotrePrenom",
             email="charafensaj@gmail.com",
-            photoName="nom_de_la_photo.jpg",
-            photo="chemin_vers_la_photo",
+            photoName="photo.jpg",
+            photo="photo",
             role=["patient"],
             tel="12222222222222",
-            genre="votre_genre"
+            genre="votre_genre",
+            is_active=True
         )
 
         new_user.save()
 
         print("Database cleared and user inserted successfully.")
-    except :
-        print("error")
-
+    except Exception as e:
+        print("Error:", e)
 else:
-    print("Not yet try again ....")
+    print("Not yet, try again...")
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -338,6 +327,7 @@ def login():
     password = data.get("password")
 
     user = authenticate(username, password)
+    print(password, username)
 
     if user:
         login_user(user)
@@ -345,7 +335,7 @@ def login():
         # Générer un token JWT
         payload = {
             "sub": str(user_data._id),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=1),
+            "exp": datetime.utcnow() + timedelta(hours=1)
         }
         token = jwt.encode(payload, app.config["SECRET_KEY"], algorithm="HS256")
 
@@ -1312,7 +1302,7 @@ def get_rdv_by_dermatologue(current_user, derm_id):
     except Dermatologue.DoesNotExist:
         return jsonify({"message": "Dermatologue introuvable"}), 404
 
-    today = date.today()
+    today = datetime.today()
 
     # Filtrez les rendez-vous pour n'inclure que ceux d'aujourd'hui
     rdvs = Rendez_vous.objects.filter(medecin=derms).order_by("-dateDebutRdv")
