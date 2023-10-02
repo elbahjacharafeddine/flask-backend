@@ -22,7 +22,7 @@ class User(Document, UserMixin):
     confirmPassword = StringField(required=True)
     nom = StringField(required=True)
     prenom = StringField(required=True)
-    email = StringField(required=True)
+    email = StringField(required=False)
     photoName = StringField(required=False, max_length=100)
     photo = StringField(required=False)
     role = ListField(StringField(required=True))

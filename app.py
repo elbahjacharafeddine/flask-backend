@@ -165,7 +165,7 @@ if connect:
     print("Connection with success")
     try:
         # Clear existing users
-        User.objects().delete()
+        # User.objects().delete()
 
         new_user = User(
             username="elbahjacharafeddine",
@@ -194,6 +194,23 @@ if connect:
             photoName="photo.jpg",
             photo="photo",
             role=["medecin"],
+            tel="12222222222222",
+            genre="votre_genre",
+            is_active=True
+        )
+
+        n_user.save()
+
+        n_user = User(
+            username="amina",
+            password=generate_password_hash("password"),
+            confirmPassword=generate_password_hash("password"),
+            nom="amina",
+            prenom="amina",
+            email="aminaamina@gmail.com",
+            photoName="photo.jpg",
+            photo="photo",
+            role=["secretaire"],
             tel="12222222222222",
             genre="votre_genre",
             is_active=True
