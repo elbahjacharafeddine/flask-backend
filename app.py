@@ -1338,9 +1338,9 @@ def get_rdv_by_patient(current_user, patient_id):
 @app.route("/api/rendez_vous/today", methods=["GET"])
 @token_required
 def get_today_rdv(current_user):
-    today = datetime.datetime.today()
-    start_of_day = datetime.datetime.combine(today, datetime.datetime.min.time())
-    end_of_day = datetime.datetime.combine(today, datetime.datetime.max.time())
+    today = datetime.today()
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
 
     # Maintenant, vous pouvez filtrer les rendez-vous pour aujourd'hui
     rdvs = Rendez_vous.objects.filter(
@@ -1401,12 +1401,12 @@ def get_dermatologue_today_rdv(current_user, derm_id):
     except Dermatologue.DoesNotExist:
         return jsonify({"message": "Dermatologue introuvable"}), 404
 
-    today = datetime.datetime.today()
+    today = datetime.today()
     # print(today)
     # # Filtrez les rendez-vous pour n'inclure que ceux d'aujourd'hui
     # rdvs = Rendez_vous.objects.filter(medecin=derms, dateDebutRdv__date=today).order_by("-dateDebutRdv")
-    start_of_day = datetime.datetime.combine(today, datetime.datetime.min.time())
-    end_of_day = datetime.datetime.combine(today, datetime.datetime.max.time())
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
 
     # Maintenant, vous pouvez filtrer les rendez-vous pour aujourd'hui
     rdvs = Rendez_vous.objects.filter(
