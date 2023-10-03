@@ -164,8 +164,7 @@ connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTIN
 if connect:
     print("Connection with success")
     try:
-        # Clear existing users
-        # User.objects().delete()
+
 
         new_user = User(
             username="elbahjacharafeddine",
@@ -1521,12 +1520,12 @@ def get_dermatologue_today_visite(current_user, derm_id):
     except Dermatologue.DoesNotExist:
         return jsonify({"message": "Dermatologue introuvable"}), 404
 
-    today = datetime.datetime.today()
+    today = datetime.today()
     # print(today)
     # # Filtrez les rendez-vous pour n'inclure que ceux d'aujourd'hui
     # rdvs = Rendez_vous.objects.filter(medecin=derms, dateDebutRdv__date=today).order_by("-dateDebutRdv")
-    start_of_day = datetime.datetime.combine(today, datetime.datetime.min.time())
-    end_of_day = datetime.datetime.combine(today, datetime.datetime.max.time())
+    start_of_day = datetime.combine(today, datetime.datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.datetime.max.time())
 
     # Maintenant, vous pouvez filtrer les rendez-vous pour aujourd'hui
     rdvs = Rendez_vous.objects.filter(
