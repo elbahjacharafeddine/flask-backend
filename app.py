@@ -49,7 +49,7 @@ nombre_de_documents = 3
 
 
 
-
+###
 
 
 
@@ -137,8 +137,8 @@ app.config["UPLOAD_FOLDER"] = os.path.dirname(__file__)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USERNAME'] = "amineensa2019@gmail.com"
-app.config['MAIL_PASSWORD'] = "htme zsbd gvxm lvot"
+app.config['MAIL_USERNAME'] = "skindiseasediagnosticsystem@gmail.com"
+app.config['MAIL_PASSWORD'] = "goro kyet qakn ggqe"
 mail = Mail(app)
 
 
@@ -570,8 +570,7 @@ def verify_reset_token(token):
 # Route to request a password reset
 @app.route("/request_password_reset", methods=["POST"])
 def request_password_reset():
-    data = request.get_json()
-    email = data.get("email")  # Utilisez data au lieu de request.get_json
+    email = request.json.get("email")
 
     if not email:
         return jsonify({"message": "Email is required"}), 400
@@ -580,9 +579,7 @@ def request_password_reset():
     if not user:
         return jsonify({"message": "User with that email not found"}), 404
 
-    # Ici, vous enverrez l'e-mail de réinitialisation du mot de passe
-    # Remplacez cette ligne par votre logique d'envoi de courriel
-
+    send_password_reset_email(user)
     return jsonify({"message": "An email has been sent with instructions to reset your password"}), 200
 
 
@@ -672,7 +669,6 @@ def reset_password(token):
     else:
         # Handle other HTTP methods (if needed)
         return jsonify({"message": "Method Not Allowed"}), 405
-
 
 # fin de Mot de passe oublié method
 
