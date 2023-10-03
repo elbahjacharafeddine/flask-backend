@@ -168,6 +168,7 @@ app.config["MONGODB_SETTINGS"] = {
 }
 connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTINGS']['host'])
 
+#update file app.py
 
 if connect:
 
