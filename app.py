@@ -132,6 +132,13 @@ def token_required(f):
 app = Flask(__name__)
 
 CORS(app)  # Active les en-têtes CORS pour toutes les routes
+CORS(
+    app,
+    resources={r"/rest_password/*": {"origins": "*"}},
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True,  # Si nécessaire pour les cookies ou l'authentification
+)
+
 app.config["SECRET_KEY"] = secrets.token_hex(16)
 app.config["UPLOAD_FOLDER"] = os.path.dirname(__file__)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -156,69 +163,70 @@ encoded_password = quote_plus(password)
 app.config["MONGODB_SETTINGS"] = {
     "db": "Medical",
     "host": f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.l1sdqyd.mongodb.net/",
+
     "retryWrites":False,
 }
 connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTINGS']['host'])
 
 
 if connect:
-    print("Connection with success")
+
     try:
 
+        print("Connection with success")
+        # new_user = User(
+        #     username="elbahjacharafeddine",
+        #     password=generate_password_hash("password"),
+        #     confirmPassword=generate_password_hash("password"),
+        #     nom="VotreNom",
+        #     prenom="VotrePrenom",
+        #     email="charafensaj@gmail.com",
+        #     photoName="photo.jpg",
+        #     photo="photo",
+        #     role=["patient"],
+        #     tel="12222222222222",
+        #     genre="votre_genre",
+        #     is_active=True
+        # )
+        #
+        # new_user.save()
+        #
+        # n_user = User(
+        #     username="elbahja",
+        #     password=generate_password_hash("password"),
+        #     confirmPassword=generate_password_hash("password"),
+        #     nom="VotreNom",
+        #     prenom="VotrePrenom",
+        #     email="charafensaj@gmail.com",
+        #     photoName="photo.jpg",
+        #     photo="photo",
+        #     role=["medecin"],
+        #     tel="12222222222222",
+        #     genre="votre_genre",
+        #     is_active=True
+        # )
+        #
+        # n_user.save()
+        #
+        # n_user = User(
+        #     username="amina",
+        #     password=generate_password_hash("password"),
+        #     confirmPassword=generate_password_hash("password"),
+        #     nom="amina",
+        #     prenom="amina",
+        #     email="aminaamina@gmail.com",
+        #     photoName="photo.jpg",
+        #     photo="photo",
+        #     role=["secretaire"],
+        #     tel="12222222222222",
+        #     genre="votre_genre",
+        #     is_active=True
+        # )
+        #
+        # n_user.save()
 
-        new_user = User(
-            username="elbahjacharafeddine",
-            password=generate_password_hash("password"),
-            confirmPassword=generate_password_hash("password"),
-            nom="VotreNom",
-            prenom="VotrePrenom",
-            email="charafensaj@gmail.com",
-            photoName="photo.jpg",
-            photo="photo",
-            role=["patient"],
-            tel="12222222222222",
-            genre="votre_genre",
-            is_active=True
-        )
 
-        new_user.save()
-
-        n_user = User(
-            username="elbahja",
-            password=generate_password_hash("password"),
-            confirmPassword=generate_password_hash("password"),
-            nom="VotreNom",
-            prenom="VotrePrenom",
-            email="charafensaj@gmail.com",
-            photoName="photo.jpg",
-            photo="photo",
-            role=["medecin"],
-            tel="12222222222222",
-            genre="votre_genre",
-            is_active=True
-        )
-
-        n_user.save()
-
-        n_user = User(
-            username="amina",
-            password=generate_password_hash("password"),
-            confirmPassword=generate_password_hash("password"),
-            nom="amina",
-            prenom="amina",
-            email="aminaamina@gmail.com",
-            photoName="photo.jpg",
-            photo="photo",
-            role=["secretaire"],
-            tel="12222222222222",
-            genre="votre_genre",
-            is_active=True
-        )
-
-        n_user.save()
-
-
-        print("Database cleared and user inserted successfully.")
+        # print("Database cleared and user inserted successfully.")
     except Exception as e:
         print("Error:", e)
 else:
@@ -577,7 +585,7 @@ def request_password_reset():
 
     user = User.objects(email=email).first()
     if not user:
-        return jsonify({"message": "User with that email not found"}), 404
+        return jsonify({"message": "User with that email not found"}), 422
 
     send_password_reset_email(user)
     return jsonify({"message": "An email has been sent with instructions to reset your password"}), 200
@@ -1520,8 +1528,8 @@ def get_dermatologue_today_visite(current_user, derm_id):
     # print(today)
     # # Filtrez les rendez-vous pour n'inclure que ceux d'aujourd'hui
     # rdvs = Rendez_vous.objects.filter(medecin=derms, dateDebutRdv__date=today).order_by("-dateDebutRdv")
-    start_of_day = datetime.combine(today, datetime.datetime.min.time())
-    end_of_day = datetime.combine(today, datetime.datetime.max.time())
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
 
     # Maintenant, vous pouvez filtrer les rendez-vous pour aujourd'hui
     rdvs = Rendez_vous.objects.filter(
