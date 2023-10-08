@@ -35,27 +35,11 @@ from werkzeug.utils import secure_filename
 import secrets
 from modelML import get_model
 from models import *
-from faker import Faker
 from random import choice, randint
-faker = Faker()
 
 nombre_de_documents = 3
 
-
-
-
-
-
-
-
-
-###
-
-
-
-
-
-
+#update by elbahja
 def convert_objet_to_dict(objet, depth=1, max_depth=3):
     if depth > max_depth or not isinstance(objet, Document):
         return str(objet)
