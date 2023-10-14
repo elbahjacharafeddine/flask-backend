@@ -56,7 +56,7 @@ class User(Document, UserMixin):
 class Patient(User):
     birthdate = DateField()
     adresse = StringField(required=True)
-    rdv = ListField(ReferenceField("Rendez_vous"))
+    rdv = ListField(ReferenceField("Rendez_vous"),json_ignore=True)
 
 
 class Secretaire(User):
@@ -65,7 +65,8 @@ class Secretaire(User):
 
 class Dermatologue(User):
     codeEmp = StringField(required=True)
-    rdv = ListField(ReferenceField("Rendez_vous"))
+    rdv = ListField(ReferenceField("Rendez_vous"), json_ignore=True)
+
 
 
 class Rendez_vous(Document):
@@ -73,7 +74,7 @@ class Rendez_vous(Document):
     dateDebutRdv = DateTimeField()
     dateFinRdv = DateTimeField()
     statut = BooleanField(default=False)
-    medecin = ReferenceField("Dermatologue")
+    medecin = ReferenceField("Dermatologue", json_ignore=True)
     patient = ReferenceField("Patient")
     consultation = ReferenceField("Consultation")
 

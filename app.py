@@ -147,7 +147,6 @@ encoded_password = quote_plus(password)
 app.config["MONGODB_SETTINGS"] = {
     "db": "Medical",
     "host": f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.l1sdqyd.mongodb.net/",
-
     "retryWrites":False,
 }
 connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTINGS']['host'])
@@ -956,7 +955,10 @@ def create_dermatologue(current_user):
 # @login_required
 # @admin_required
 def get_all_dermatologues(current_user):
-    dermatologues = Dermatologue.objects.all()
+    dermatologues = Dermatologue.objects().only(
+    "codeEmp",
+    "username", "nom", "prenom", "email", "photoName", "photo", "role", "tel", "genre", "is_active"  # Attributs hérités de la classe User
+)
 
     dermatologues_data = [convert_objet_to_dict(derm) for derm in dermatologues]
     return jsonify(dermatologues_data), 200
