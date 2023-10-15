@@ -805,7 +805,9 @@ def get_patients(current_user):
 # @login_required
 def get_user_by_id(current_user, user_id):
     try:
-        user = User.objects.get(pk=user_id)
+        user = User.objects.only(
+            "nom", "prenom", "genre","username","tel","photoName","codeEmp"
+        ).get(pk=user_id)
     except DoesNotExist:
         return jsonify({"message": "Utilisateur non trouvé"}), 404
 
@@ -1306,6 +1308,37 @@ def get_rdv(current_user, rdv_id):
 
 
 #################################### get rdv by patient #################################################
+@app.route("/api/appointment/patient/<string:patient_id>")
+# @token_required
+def getAllAppointmentByPatient( patient_id):
+    try:
+        patient = Patient.objects.get(pk=patient_id)
+        rdvs = Rendez_vous.objects(patient=patient).only("dateDebutRdv", "dateFinRdv", "statut", "medecin")
+
+        rendez_vous_data = []
+        for rv in rdvs:
+            medecin_info = {
+                "_id": str(rv.medecin._id),
+                "nom": rv.medecin.nom,
+                "prenom":rv.medecin.prenom,
+            }
+
+            appointment_data = {
+                "dateDebutRdv": rv.dateDebutRdv,
+                "dateFinRdv": rv.dateFinRdv,
+                "statut": rv.statut,
+                "patient": patient.nom + " " + patient.prenom,
+                "medecin": medecin_info
+            }
+
+            rendez_vous_data.append(appointment_data)
+
+        rendez_vous_data = sorted(rendez_vous_data, key=lambda x: x["dateDebutRdv"])
+        return jsonify(rendez_vous_data), 200
+
+    except Patient.DoesNotExist:
+        return jsonify({"message": "Patient introuvable"}), 404
+
 @app.route("/api/rendez_vous/patient/<string:patient_id>", methods=["GET"])
 @token_required
 def get_rdv_by_patient(current_user, patient_id):
@@ -1340,19 +1373,49 @@ def get_today_rdv(current_user):
 #################################### get rdv by medecin #################################################
 @app.route("/api/rendez_vous/dermatologue/<string:derm_id>", methods=["GET"])
 @token_required
-def get_rdv_by_dermatologue(current_user, derm_id):
+def get_rdv_by_dermatologue(current_user ,derm_id):
     try:
         derms = Dermatologue.objects.get(pk=derm_id)
+
     except Dermatologue.DoesNotExist:
         return jsonify({"message": "Dermatologue introuvable"}), 404
 
-    today = datetime.today()
-
-    # Filtrez les rendez-vous pour n'inclure que ceux d'aujourd'hui
     rdvs = Rendez_vous.objects.filter(medecin=derms).order_by("-dateDebutRdv")
-
     rdv_data = [convert_objet_to_dict(rdv) for rdv in rdvs]
     return jsonify(rdv_data), 200
+
+
+
+@app.route("/api/appointment/doctor/<string:derm_id>", methods=["GET"])
+@token_required
+def getAllAppointment(current_user, derm_id):
+    try:
+        derms = Dermatologue.objects.get(pk=derm_id)
+
+    except Dermatologue.DoesNotExist:
+        return jsonify({"message": "Dermatologue introuvable"}), 404
+
+    rdv = Rendez_vous.objects(medecin=derms).only("dateDebutRdv", "dateFinRdv", "statut", "patient")
+    rendez_vous_data = [
+        {
+            "dateDebutRdv": rv.dateDebutRdv,
+            "dateFinRdv": rv.dateFinRdv,
+            "statut": rv.statut,
+            "doctor":derms.nom +" " +derms.prenom,
+            "patient": {
+                "nom": rv.patient.nom,
+                "prenom": rv.patient.prenom,
+                "genre": rv.patient.genre,
+                "username": rv.patient.username,
+                "tel": rv.patient.tel,
+                "photoName": rv.patient.photoName,
+            },
+        }
+        for rv in rdv
+    ]
+    rendez_vous_data = sorted(rendez_vous_data, key=lambda x: x["dateDebutRdv"])
+
+    return jsonify(rendez_vous_data), 200
 
 
 #################################### get doctor futur rdv #################################################
