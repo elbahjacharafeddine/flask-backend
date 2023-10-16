@@ -1,6 +1,6 @@
 from urllib import request
 
-from flask import render_template, jsonify, Flask, request
+from flask import render_template, jsonify, Flask, request, Response
 # from pymongo import MongoClient
 import datetime
 import json
@@ -794,7 +794,9 @@ def allowed_file(filename):
 # @login_required
 # @secretaire_required
 def get_patients(current_user):
-    patients = Patient.objects().all()
+    patients = Patient.objects().only(
+        "username", "nom", "prenom", "email", "tel", "genre", "adresse"
+    )
     patients_data = [convert_objet_to_dict(patient) for patient in patients]
     return jsonify(patients_data), 200
 
@@ -1193,35 +1195,45 @@ def delete_secretaire(current_user, secretaire_id):
 @token_required
 def create_rdv(current_user, patient_id, medecin_id):
     try:
-        patient = Patient.objects.get(pk=patient_id)
-    except Patient.DoesNotExist:
-        return jsonify({"message": "Patient not found"}), 404
+        try:
+            patient = Patient.objects.get(pk=patient_id)
+            print("on a trouve le patient")
+        except Patient.DoesNotExist:
+            return jsonify({"message": "Patient not found"}), 404
 
-    try:
-        medecin = Dermatologue.objects.get(pk=medecin_id)
-    except Dermatologue.DoesNotExist:
-        return jsonify({"message": "Dermatologue not found"}), 404
+        try:
+            medecin = User.objects.get(pk=medecin_id)
+            print("on a trouve le medecin")
+        except Dermatologue.DoesNotExist:
+            return jsonify({"message": "Dermatologue not found"}), 404
 
-    data = request.get_json()
-    dateDebutRdv = data.get("dateDebutRdv")
-    dateFinRdv = data.get("dateFinRdv")
 
-    rdv = Rendez_vous(
-        dateDebutRdv=dateDebutRdv,
-        dateFinRdv=dateFinRdv,
-        patient=patient,
-        medecin=medecin,
-    )
+        data = request.get_json()
 
-    rdv.save()
-    patient.rdv.append(rdv)
-    patient.save()
-
-    medecin.rdv.append(rdv)
-    medecin.save()
-
-    rdv_data = convert_objet_to_dict(rdv)
-    return jsonify(rdv_data)
+        dateDebutRdv = data.get("dateDebutRdv")
+        dateFinRdv = data.get("dateFinRdv")
+        print(dateDebutRdv, dateFinRdv)
+        #
+        rdv = Rendez_vous(
+            dateDebutRdv=dateDebutRdv,
+            dateFinRdv=dateFinRdv,
+            patient=patient,
+            medecin=medecin,
+        )
+        print("tres bien ...!")
+        #
+        rdv.save()
+        patient.rdv.append(rdv)
+        patient.save()
+        #
+        # medecin.rdv.append(rdv)
+        # medecin.save()
+        #
+        # rdv_data = convert_objet_to_dict(rdv)
+        # return jsonify(rdv_data)
+        return Response("Rendez-vous créé avec succès", status=200)
+    except Exception as e:
+        return jsonify({"message": "somethings go wrong"}), 404
 
 
 ######################################### supprimer un rendez vous #######################################
@@ -1289,7 +1301,30 @@ def delete_rdv(current_user, rdv_id):
 @app.route("/api/rendez_vous", methods=["GET"])
 @token_required
 def get_rdvs(current_user):
-    rdvs = Rendez_vous.objects().order_by("-dateDebutRdv")
+    rdvs = Rendez_vous.objects().only(
+        "dateDebutRdv","dateFinRdv","statut"
+    )
+
+    rendez_vous_data = []
+    for rv in rdvs:
+        medecin_info = {
+            "nom": rv.medecin.nom,
+            "prenom": rv.medecin.prenom,
+        }
+        patient_info = {
+            "nom": rv.medecin.nom,
+            "prenom": rv.medecin.prenom,
+        }
+
+        appointment_data = {
+            "dateDebutRdv": rv.dateDebutRdv,
+            "dateFinRdv": rv.dateFinRdv,
+            "statut": rv.statut,
+            "medecin": medecin_info,
+            "patient":patient_info
+        }
+
+        rendez_vous_data.append(appointment_data)
 
     rdv_data = [convert_objet_to_dict(rdv) for rdv in rdvs]
     return jsonify(rdv_data), 200
@@ -1308,10 +1343,11 @@ def get_rdv(current_user, rdv_id):
 
 
 #################################### get rdv by patient #################################################
-@app.route("/api/appointment/patient/<string:patient_id>")
-# @token_required
-def getAllAppointmentByPatient( patient_id):
+@app.route("/api/appointment/patient/<string:patient_id>", methods=["GET"])
+@token_required
+def getAllAppointmentByPatient(current_user, patient_id):
     try:
+        print(patient_id)
         patient = Patient.objects.get(pk=patient_id)
         rdvs = Rendez_vous.objects(patient=patient).only("dateDebutRdv", "dateFinRdv", "statut", "medecin")
 
@@ -1336,7 +1372,7 @@ def getAllAppointmentByPatient( patient_id):
         rendez_vous_data = sorted(rendez_vous_data, key=lambda x: x["dateDebutRdv"])
         return jsonify(rendez_vous_data), 200
 
-    except Patient.DoesNotExist:
+    except Exception as e:
         return jsonify({"message": "Patient introuvable"}), 404
 
 @app.route("/api/rendez_vous/patient/<string:patient_id>", methods=["GET"])
@@ -2256,6 +2292,20 @@ def images_stade(current_user, stade_id):
     images_data = [convert_objet_to_dict(img) for img in images]
     return jsonify(images_data)
 
+
+
+
+
+
+###########################ELBAHJA routes#########################################################
+
+####################################################################################
+
+
+
+###########################AMINE routes#########################################################
+
+####################################################################################
 
 if __name__ == "__main__":
     app.run( port=5000)
