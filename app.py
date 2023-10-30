@@ -2354,8 +2354,8 @@ def images_stade(current_user, stade_id):
 
 ###########################ELBAHJA routes#########################################################
 @app.route("/api/visite/dermatolog/today/<string:derm_id>", methods=["GET"])
-# @token_required
-def get_dermatologue_today_visit(derm_id):
+@token_required
+def get_dermatologue_today_visit(current_user,derm_id):
     try:
         derms = Dermatologue.objects.get(pk=derm_id)
     except Dermatologue.DoesNotExist:
