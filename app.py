@@ -13,13 +13,14 @@ from functools import wraps
 from threading import Thread
 from urllib.parse import quote_plus
 
+#########
 import jwt
 # import cv2
 import numpy as np
 from PIL import Image
 from flask import render_template
 from flask import send_from_directory
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_login import LoginManager
 from flask_login import login_user, logout_user, login_required, current_user
 # import tensorflow as tf
@@ -39,7 +40,8 @@ from random import choice, randint
 
 nombre_de_documents = 3
 
-#update by elbahja
+
+# update by elbahja
 def convert_objet_to_dict(objet, depth=1, max_depth=3):
     if depth > max_depth or not isinstance(objet, Document):
         return str(objet)
@@ -116,12 +118,13 @@ def token_required(f):
 app = Flask(__name__)
 
 CORS(app)  # Active les en-têtes CORS pour toutes les routes
-CORS(
-    app,
-    resources={r"/rest_password/*": {"origins": "*"}},
-    allow_headers=["Content-Type", "Authorization"],
-    supports_credentials=True,  # Si nécessaire pour les cookies ou l'authentification
-)
+
+# CORS(
+#     app,
+#     resources={r"/rest_password/*": {"origins": "*"}},
+#     allow_headers=["Content-Type", "Authorization"],
+#     supports_credentials=True,  # Si nécessaire pour les cookies ou l'authentification
+# )
 
 app.config["SECRET_KEY"] = secrets.token_hex(16)
 app.config["UPLOAD_FOLDER"] = os.path.dirname(__file__)
@@ -147,11 +150,11 @@ encoded_password = quote_plus(password)
 app.config["MONGODB_SETTINGS"] = {
     "db": "Medical",
     "host": f"mongodb+srv://{encoded_username}:{encoded_password}@cluster0.l1sdqyd.mongodb.net/",
-    "retryWrites":False,
+    "retryWrites": False,
 }
 connect(db=app.config['MONGODB_SETTINGS']['db'], host=app.config['MONGODB_SETTINGS']['host'])
 
-#update file app.py
+# update file app.py
 
 if connect:
 
@@ -208,7 +211,6 @@ if connect:
         # )
         #
         # n_user.save()
-
 
         # print("Database cleared and user inserted successfully.")
     except Exception as e:
@@ -384,11 +386,25 @@ def login():
         }
         token = jwt.encode(payload, app.config["SECRET_KEY"], algorithm="HS256")
 
-        return jsonify({"token": token}), 200
+        return jsonify({"token": token, "user_id": str(current_user.id)}), 200
     else:
         return jsonify({"message": "Authentication failed"}), 401
 
 
+#######GET THE USER_ID OF THE CURRENT USER #############
+# @app.route("/api/currentUser/get_user_id", methods=["GET"])
+# @login_required  # Protect this route so only authenticated users can access it
+# def get_Current_user_id():
+#     user_id = str(current_user.id)  # Convert ObjectId to string
+#     return jsonify({"user_id": user_id}), 200
+
+# @app.route("/api/currentUser/get_user_id", methods=["GET"])
+# @cross_origin()
+# @login_required
+# def get_Current_user_id():
+#     user_id = str(current_user.id)  # Access the user's ID directly
+#     return jsonify({"user_id": user_id}), 200
+########################################################
 ######################################### logout ############################################
 @app.route("/logout")
 @login_required
@@ -662,6 +678,7 @@ def reset_password(token):
         # Handle other HTTP methods (if needed)
         return jsonify({"message": "Method Not Allowed"}), 405
 
+
 # fin de Mot de passe oublié method
 
 
@@ -808,7 +825,9 @@ def get_patients(current_user):
 def get_user_by_id(current_user, user_id):
     try:
         user = User.objects.only(
-            "nom", "prenom", "genre","username","tel","photoName","codeEmp"
+
+            "nom", "prenom", "genre", "username", "tel", "photoName", "codeEmp"
+
         ).get(pk=user_id)
     except DoesNotExist:
         return jsonify({"message": "Utilisateur non trouvé"}), 404
@@ -960,9 +979,10 @@ def create_dermatologue(current_user):
 # @admin_required
 def get_all_dermatologues(current_user):
     dermatologues = Dermatologue.objects().only(
-    "codeEmp",
-    "username", "nom", "prenom", "email", "photoName", "photo", "role", "tel", "genre", "is_active"  # Attributs hérités de la classe User
-)
+        "codeEmp",
+        "username", "nom", "prenom", "email", "photoName", "photo", "role", "tel", "genre", "is_active"
+        # Attributs hérités de la classe User
+    )
 
     dermatologues_data = [convert_objet_to_dict(derm) for derm in dermatologues]
     return jsonify(dermatologues_data), 200
@@ -1040,18 +1060,42 @@ def update_dermatologue(current, dermatologue_id):
     return jsonify(dermatologue_data), 200
 
 
+#####extract user infos function###
+
+def extract_patient_info(patient):
+    return {
+        "_id": str(patient["_id"]),
+        "nom": patient["nom"],
+        "prenom": patient["prenom"],
+        "adresse": patient["adresse"],
+        "email": patient["email"],
+        "photoName": patient["photoName"],
+        "photo": patient["photo"],
+        "role": patient["role"],
+        "tel": patient["tel"],
+        "genre": patient["genre"],
+        "is_active": patient["is_active"]
+    }
+
+
+######################3
 ########################################## les patients par medecin ####################################
 @app.route("/api/medecin/patients/<string:medecin_id>", methods=["GET"])
-@token_required
-def get_patients_for_medecin(current_user, medecin_id):
+# @token_required
+def get_patients_for_medecin(medecin_id):
     rdvs = Rendez_vous.objects(medecin=medecin_id).all()
+
+    #     .only(
+
+    #     "_id", "nom", "prenom", "email", "photoName", "photo", "role", "tel", "genre", "is_active"
+    # )
 
     unique_patients = set()
 
     for rdv in rdvs:
         unique_patients.add(rdv.patient)
 
-    patients_data = [convert_objet_to_dict(patient) for patient in unique_patients]
+    patients_data = [extract_patient_info(patient) for patient in unique_patients]
     return jsonify(patients_data), 200
 
 
@@ -1207,7 +1251,6 @@ def create_rdv(current_user, patient_id, medecin_id):
         except Dermatologue.DoesNotExist:
             return jsonify({"message": "Dermatologue not found"}), 404
 
-
         data = request.get_json()
 
         dateDebutRdv = data.get("dateDebutRdv")
@@ -1302,7 +1345,7 @@ def delete_rdv(current_user, rdv_id):
 @token_required
 def get_rdvs(current_user):
     rdvs = Rendez_vous.objects().only(
-        "dateDebutRdv","dateFinRdv","statut"
+        "dateDebutRdv", "dateFinRdv", "statut"
     )
 
     rendez_vous_data = []
@@ -1321,7 +1364,7 @@ def get_rdvs(current_user):
             "dateFinRdv": rv.dateFinRdv,
             "statut": rv.statut,
             "medecin": medecin_info,
-            "patient":patient_info
+            "patient": patient_info
         }
 
         rendez_vous_data.append(appointment_data)
@@ -1342,6 +1385,7 @@ def get_rdv(current_user, rdv_id):
     return jsonify(rdv_data)
 
 
+########
 #################################### get rdv by patient #################################################
 @app.route("/api/appointment/patient/<string:patient_id>", methods=["GET"])
 @token_required
@@ -1356,7 +1400,7 @@ def getAllAppointmentByPatient(current_user, patient_id):
             medecin_info = {
                 "_id": str(rv.medecin._id),
                 "nom": rv.medecin.nom,
-                "prenom":rv.medecin.prenom,
+                "prenom": rv.medecin.prenom,
             }
 
             appointment_data = {
@@ -1374,6 +1418,7 @@ def getAllAppointmentByPatient(current_user, patient_id):
 
     except Exception as e:
         return jsonify({"message": "Patient introuvable"}), 404
+
 
 @app.route("/api/rendez_vous/patient/<string:patient_id>", methods=["GET"])
 @token_required
@@ -1409,7 +1454,7 @@ def get_today_rdv(current_user):
 #################################### get rdv by medecin #################################################
 @app.route("/api/rendez_vous/dermatologue/<string:derm_id>", methods=["GET"])
 @token_required
-def get_rdv_by_dermatologue(current_user ,derm_id):
+def get_rdv_by_dermatologue(current_user, derm_id):
     try:
         derms = Dermatologue.objects.get(pk=derm_id)
 
@@ -1420,6 +1465,8 @@ def get_rdv_by_dermatologue(current_user ,derm_id):
     rdv_data = [convert_objet_to_dict(rdv) for rdv in rdvs]
     return jsonify(rdv_data), 200
 
+
+####
 
 
 @app.route("/api/appointment/doctor/<string:derm_id>", methods=["GET"])
@@ -1437,7 +1484,7 @@ def getAllAppointment(current_user, derm_id):
             "dateDebutRdv": rv.dateDebutRdv,
             "dateFinRdv": rv.dateFinRdv,
             "statut": rv.statut,
-            "doctor":derms.nom +" " +derms.prenom,
+            "doctor": derms.nom + " " + derms.prenom,
             "patient": {
                 "nom": rv.patient.nom,
                 "prenom": rv.patient.prenom,
@@ -1840,6 +1887,18 @@ def get_diagnostic(current_user, diagnostic_id):
     return jsonify(diagnostic_data), 200
 
 
+######for test###
+@app.route("/api/diagnostic", methods=["GET"])
+def gett_diagnostic():
+    try:
+        diagnostic = Diagnostic.objects.first()
+    except Diagnostic.DoesNotExist:
+        return jsonify({"message": "Diagnostic not found"}), 400
+    diagnostic_data = convert_objet_to_dict(diagnostic)
+    return jsonify(diagnostic_data), 200
+
+
+####for test
 ############################################################## update diagnostic==> faire des prescriptions ############################################################
 @app.route("/api/diagnostic/update/<string:diagnostic_id>", methods=["PUT"])
 @token_required
@@ -2293,14 +2352,60 @@ def images_stade(current_user, stade_id):
     return jsonify(images_data)
 
 
-
-
-
-
 ###########################ELBAHJA routes#########################################################
+@app.route("/api/visite/dermatolog/today/<string:derm_id>", methods=["GET"])
+# @token_required
+def get_dermatologue_today_visit(derm_id):
+    try:
+        derms = Dermatologue.objects.get(pk=derm_id)
+    except Dermatologue.DoesNotExist:
+        return jsonify({"message": "Dermatologue introuvable"}), 404
 
+    today = datetime.today()
+    # print(today)
+    # # Filtrez les rendez-vous pour n'inclure que ceux d'aujourd'hui
+    # rdvs = Rendez_vous.objects.filter(medecin=derms, dateDebutRdv__date=today).order_by("-dateDebutRdv")
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
+
+    # Maintenant, vous pouvez filtrer les rendez-vous pour aujourd'hui
+    rdvs = Rendez_vous.objects.filter(
+        Q(medecin=derms)
+        & Q(dateDebutRdv__gte=start_of_day)
+        & Q(dateDebutRdv__lte=end_of_day)
+        & Q(statut=True)
+    ).only("_id","consultation","dateDebutRdv", "medecin", "patient").order_by("-dateDebutRdv")
+
+    rdv_data = []
+    for rdv in rdvs:
+        rdv_dict = {
+            "id": str(rdv._id),
+            "dateDebutRdv": rdv.dateDebutRdv,
+            "medecin": rdv.medecin.nom + " "+ rdv.medecin.prenom,
+            "patient": rdv.patient.nom + " "+ rdv.patient.prenom,
+            "patient_id": str(rdv.patient._id),
+            "patient_tel": rdv.patient.tel,
+            "consultation_id":str(rdv.consultation._id)
+        }
+        rdv_data.append(rdv_dict)
+
+    return jsonify(rdv_data), 200
+
+
+@app.route("/api/consultations/diagnostics/<string:consult_id>", methods=["GET"])
+@token_required
+def diagnosticss_by_consultation(current_user, consult_id):
+    try:
+        consultation = Consultation.objects.get(pk=consult_id)
+    except Consultation.DoesNotExist:
+        return jsonify({"message": "Consultation not found"}), 404
+
+    diagnostics = Diagnostic.objects.filter(consultation=consultation).order_by(
+        "-dateDiagnostic"
+    ).only("_id","dateDiagnostic","imagePath","probability","maladie")
+    diagnostic_data = [convert_objet_to_dict(diagnostic) for diagnostic in diagnostics]
+    return jsonify(diagnostic_data), 201
 ####################################################################################
-
 
 
 ###########################AMINE routes#########################################################
@@ -2308,4 +2413,4 @@ def images_stade(current_user, stade_id):
 ####################################################################################
 
 if __name__ == "__main__":
-    app.run( port=5000)
+    app.run(port=5000)
